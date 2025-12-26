@@ -1,0 +1,74 @@
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200">Sales & Purchases</h2>
+    <div class="flex space-x-2">
+      <button (click)="addOrder('sale')" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm">
+        + New Sale
+      </button>
+      <button (click)="addOrder('purchase')" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
+        + New Purchase
+      </button>
+    </div>
+  </div>
+
+  <div class="bg-white dark:bg-gray-800 shadow-sm rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
+    @if (ordersResource.isLoading()) {
+      <div class="p-8 text-center text-gray-500">
+        Loading orders...
+      </div>
+    } @else if (ordersResource.error()) {
+      <div class="p-8 text-center text-red-500">
+        Error loading orders.
+      </div>
+    } @else {
+      <div class="overflow-x-auto">
+        <table class="w-full text-left">
+          <thead class="bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 font-medium text-sm uppercase tracking-wider">
+            <tr>
+              <th class="px-6 py-4">Date</th>
+              <th class="px-6 py-4">Type</th>
+              <th class="px-6 py-4">Party</th>
+              <th class="px-6 py-4 text-right">Items</th>
+              <th class="px-6 py-4 text-right">Total</th>
+              <th class="px-6 py-4">Status</th>
+              <th class="px-6 py-4 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+            @for (order of ordersResource.value(); track order.id) {
+              <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                <td class="px-6 py-4 text-gray-700 dark:text-gray-300 font-mono text-sm">{{ order.date }}</td>
+                <td class="px-6 py-4">
+                  <span [class]="order.type === 'sale' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium uppercase">
+                    {{ order.type }}
+                  </span>
+                </td>
+                <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">{{ order.partyName }}</td>
+                <td class="px-6 py-4 text-right text-gray-700 dark:text-gray-300">{{ order.items }}</td>
+                <td class="px-6 py-4 text-right font-medium text-gray-900 dark:text-white">
+                  ${{ order.totalAmount }}
+                </td>
+                <td class="px-6 py-4">
+                  <span [class]="order.status === 'completed' ? 'text-green-600 dark:text-green-400' : order.status === 'pending' ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'" class="font-medium text-sm capitalize">
+                    {{ order.status }}
+                  </span>
+                </td>
+                <td class="px-6 py-4 text-right">
+                  <button (click)="deleteOrder(order.id)" class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 font-medium text-sm">
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="7" class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                  No orders found.
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>
