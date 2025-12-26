@@ -1,38 +1,76 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AccountingService } from '../../services/accounting';
+import { Modal } from '../../components/ui/modal/modal';
 
 @Component({
   selector: 'app-accounting',
-  imports: [CommonModule],
+  imports: [CommonModule, ReactiveFormsModule, Modal],
   templateUrl: './accounting.html',
   styleUrl: './accounting.css',
 })
 export class Accounting {
   private accountingService = inject(AccountingService);
+  private fb = inject(FormBuilder);
   
   transactionsResource = this.accountingService.transactionsResource;
 
-  addTransaction() {
-    const description = prompt('Enter Description:');
-    if (!description) return;
+  isAddModalOpen = signal(false);
+  isDeleteModalOpen = signal(false);
+  transactionToDelete = signal<number | null>(null);
 
-    const amount = parseFloat(prompt('Enter Amount:', '100') || '0');
-    const type = prompt('Enter Type (income/expense):', 'expense') as 'income' | 'expense';
-    const category = prompt('Enter Category:', 'General');
+  addTransactionForm = this.fb.group({
+    description: ['', [Validators.required]],
+    amount: [0, [Validators.required, Validators.min(0)]],
+    type: ['expense', [Validators.required]],
+    category: ['General', [Validators.required]],
+    date: [new Date().toISOString().split('T')[0], [Validators.required]]
+  });
 
-    this.accountingService.addTransaction({
-      date: new Date().toISOString().split('T')[0],
-      description,
-      amount,
-      type: (type === 'income' || type === 'expense') ? type : 'expense',
-      category: category || 'General'
+  openAddModal() {
+    this.addTransactionForm.reset({
+      description: '',
+      amount: 0,
+      type: 'expense',
+      category: 'General',
+      date: new Date().toISOString().split('T')[0]
     });
+    this.isAddModalOpen.set(true);
   }
 
-  deleteTransaction(id: number) {
-    if (confirm('Are you sure you want to delete this transaction?')) {
-      this.accountingService.deleteTransaction(id);
+  closeAddModal() {
+    this.isAddModalOpen.set(false);
+  }
+
+  onSubmitAdd() {
+    if (this.addTransactionForm.valid) {
+      const formValue = this.addTransactionForm.value;
+      this.accountingService.addTransaction({
+        description: formValue.description!,
+        amount: formValue.amount!,
+        type: formValue.type as 'income' | 'expense',
+        category: formValue.category!,
+        date: formValue.date!
+      });
+      this.closeAddModal();
+    }
+  }
+
+  openDeleteModal(id: number) {
+    this.transactionToDelete.set(id);
+    this.isDeleteModalOpen.set(true);
+  }
+
+  closeDeleteModal() {
+    this.isDeleteModalOpen.set(false);
+    this.transactionToDelete.set(null);
+  }
+
+  confirmDelete() {
+    if (this.transactionToDelete() !== null) {
+      this.accountingService.deleteTransaction(this.transactionToDelete()!);
+      this.closeDeleteModal();
     }
   }
 }

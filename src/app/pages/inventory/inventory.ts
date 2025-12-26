@@ -1,39 +1,77 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { InventoryService } from '../../services/inventory';
 import { CommonModule } from '@angular/common';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Modal } from '../../components/ui/modal/modal';
 
 @Component({
   selector: 'app-inventory',
-  imports: [CommonModule],
+  imports: [CommonModule, ReactiveFormsModule, Modal],
   templateUrl: './inventory.html',
   styleUrl: './inventory.css',
 })
 export class Inventory {
   private inventoryService = inject(InventoryService);
+  private fb = inject(FormBuilder);
   
   itemsResource = this.inventoryService.itemsResource;
+  
+  // Modals state
+  isAddModalOpen = signal(false);
+  isDeleteModalOpen = signal(false);
+  itemToDelete = signal<number | null>(null);
 
-  addItem() {
-    const name = prompt('Enter Item Name:');
-    if (!name) return;
-    
-    const sku = prompt('Enter SKU:', 'SKU-' + Math.floor(Math.random() * 1000));
-    const category = prompt('Enter Category:', 'General');
-    const quantity = parseInt(prompt('Enter Quantity:', '10') || '0');
-    const price = parseFloat(prompt('Enter Price:', '100') || '0');
+  // Forms
+  addItemForm = this.fb.group({
+    name: ['', [Validators.required]],
+    sku: ['', [Validators.required]],
+    category: ['General', [Validators.required]],
+    quantity: [0, [Validators.required, Validators.min(0)]],
+    price: [0, [Validators.required, Validators.min(0)]]
+  });
 
-    this.inventoryService.addItem({
-      name,
-      sku: sku || 'UNKNOWN',
-      category: category || 'General',
-      quantity,
-      price
+  openAddModal() {
+    this.addItemForm.reset({
+      category: 'General',
+      quantity: 0,
+      price: 0
     });
+    this.isAddModalOpen.set(true);
   }
 
-  deleteItem(id: number) {
-    if (confirm('Are you sure you want to delete this item?')) {
+  closeAddModal() {
+    this.isAddModalOpen.set(false);
+  }
+
+  onSubmitAdd() {
+    if (this.addItemForm.valid) {
+      const val = this.addItemForm.value;
+      this.inventoryService.addItem({
+        name: val.name!,
+        sku: val.sku!,
+        category: val.category!,
+        quantity: val.quantity!,
+        price: val.price!
+      });
+      this.closeAddModal();
+    }
+  }
+
+  openDeleteModal(id: number) {
+    this.itemToDelete.set(id);
+    this.isDeleteModalOpen.set(true);
+  }
+
+  closeDeleteModal() {
+    this.isDeleteModalOpen.set(false);
+    this.itemToDelete.set(null);
+  }
+
+  confirmDelete() {
+    const id = this.itemToDelete();
+    if (id !== null) {
       this.inventoryService.deleteItem(id);
+      this.closeDeleteModal();
     }
   }
 }
